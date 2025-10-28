@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard IA Real — Demo con Comentarios Mejorado</title>
+<style>
+:root{--blue:#1e66b0;--bg:#f7f9fc;--card-bg:#fff;--muted:#6b7280;--radius:10px;--thin:1px;--accent:#0b4f84;font-family:Inter,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:28px;color:#0f1724;}
+.app{width:100%;max-width:1100px;min-height:640px;display:grid;grid-template-columns:1fr;gap:20px;align-items:start;}
+.panel{background:var(--card-bg);border-radius:var(--radius);box-shadow:0 6px 18px rgba(15,23,36,0.06);padding:20px;}
+.centered{display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;min-height:400px;}
+form{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;}
+label{font-size:13px;color:var(--muted);}
+input[type="text"],input[type="password"],textarea{padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:15px;}
+textarea{resize:none;}
+.row{display:flex;gap:10px;}
+button{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer;}
+button.ghost{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.small{font-size:13px;color:var(--muted);text-align:center;}
+.dashboard{display:flex;gap:20px;flex-direction:column;min-height:580px;}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;}
+.metric{background: rgba(11,79,132,0.04);border-radius:8px;padding:12px;display:flex;gap:12px;align-items:center;justify-content:space-between;min-height:64px;}
+.metric h3{font-size:13px;margin:0;color:var(--muted);}
+.metric .value{font-weight:800;font-size:20px;color:#05233a;}
+.big-stat{flex:1;border-radius:8px;padding:18px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;background:linear-gradient(180deg, rgba(11,79,132,0.03), rgba(11,79,132,0.01));}
+.big-stat .num{font-size:36px;font-weight:800;color:var(--accent);}
+.big-stat .label{color:var(--muted);font-size:13px;}
+
+/* ================= Comentarios Mejorado ================= */
+.commentsModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  animation: fadeIn 0.2s;
+}
+
+.commentsContent {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+#commentsList {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 6px;
+}
+
+.comment {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+}
+
+.comment strong {
+  color: var(--accent);
+}
+
+.comment .date {
+  color: #888;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.reply {
+  margin-left: 20px;
+  padding: 4px 0;
+  font-size: 14px;
+  border-left: 2px solid #ddd;
+  padding-left: 8px;
+  margin-top: 4px;
+}
+
+button.replyBtn, #postCommentBtn, #closeComments {
+  cursor: pointer;
+  border-radius: 6px;
+  border: none;
+  padding: 6px 10px;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+button.replyBtn {
+  background: transparent;
+  color: var(--accent);
+}
+
+button.replyBtn:hover { text-decoration: underline; }
+
+#postCommentBtn {
+  background: var(--accent);
+  color: white;
+  margin-top: 6px;
+}
+
+#closeComments {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #f0f0f0;
+}
+
+@keyframes fadeIn { from {opacity:0} to {opacity:1} }
+</style>
+</head>
+<body>
+<main class="app">
+
+<!-- LOGIN -->
+<section id="authPanel" class="panel centered">
+  <h2>Bienvenido</h2>
+  <p class="small">Inicia sesión o crea una cuenta.</p>
+  <form autocomplete="off">
+    <div>
+      <label>Email o usuario</label>
+      <input id="email" type="text" placeholder="tucorreo@ejemplo.com" required />
+    </div>
+    <div>
+      <label>Contraseña</label>
+      <input id="password" type="password" placeholder="mín. 4 caracteres" required />
+    </div>
+    <div class="row">
+      <button type="button" id="loginBtn">Iniciar sesión</button>
+      <button type="button" id="createBtn" class="ghost">Crear cuenta</button>
+    </div>
+  </form>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashPanel" class="panel dashboard" style="display:none">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="userDisplay" style="font-weight:800"></div>
+      <button id="commentsBtn" class="ghost">💬 Comentarios</button>
+    </div>
+    <button id="logoutBtn" class="ghost">Cerrar sesión</button>
+  </div>
+  <div>
+    <div class="metric">Horas entrenadas: <span id="hoursVal">0</span></div>
+    <div class="metric">Velocidad de reacción: <span id="reactionVal">— ms</span></div>
+    <div class="metric">Concentración: <span id="focusVal">— %</span></div>
+    <div class="metric">Precisión: <span id="precisionVal">— %</span></div>
+    <div class="big-stat">Última actualización: <span id="lastUpdate">—</span></div>
+    <div class="big-stat">Sesiones totales: <span id="sessionsVal">0</span></div>
+    <div class="big-stat">Mejor reacción: <span id="bestReaction">—</span></div>
+    <p id="statusText">Esperando cámara...</p>
+    <video id="webcam" autoplay playsinline width="320" height="240" style="display:none"></video>
+  </div>
+</section>
+
+<!-- Modal Comentarios -->
+<div id="commentsModal" class="commentsModal">
+  <div class="commentsContent">
+    <h3>Comentarios</h3>
+    <div id="commentsList"></div>
+    <input id="usernameInput" placeholder="Tu nombre público" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:6px;" />
+    <textarea id="commentInput" placeholder="Escribe tu comentario..." rows="3"></textarea>
+    <button id="postCommentBtn">Publicar</button>
+    <button id="closeComments">❌</button>
+  </div>
+</div>
+
+<script>
+const $ = s=>document.querySelector(s);
+const emailInput=$('#email'), passInput=$('#password');
+const loginBtn=$('#loginBtn'), createBtn=$('#createBtn'), logoutBtn=$('#logoutBtn');
+const authPanel=$('#authPanel'), dashPanel=$('#dashPanel');
+const userDisplay=$('#userDisplay'), hoursVal=$('#hoursVal'), reactionVal=$('#reactionVal');
+const focusVal=$('#focusVal'), precisionVal=$('#precisionVal'), lastUpdate=$('#lastUpdate');
+const sessionsVal=$('#sessionsVal'), bestReaction=$('#bestReaction'), statusText=$('#statusText');
+const webcamEl=$('#webcam');
+
+const commentsBtn = $('#commentsBtn');
+const commentsModal = $('#commentsModal');
+const closeComments = $('#closeComments');
+const postCommentBtn = $('#postCommentBtn');
+const commentsList = $('#commentsList');
+const commentInput = $('#commentInput');
+
+function hashPass(p){return btoa(unescape(encodeURIComponent(p)));}
+function saveUsers(){localStorage.setItem('users',JSON.stringify(users));}
+function loadUsers(){try{return JSON.parse(localStorage.getItem('users'))||{};}catch(e){return{};}}
+
+let users = loadUsers();
+let current = localStorage.getItem('currentUser')||null;
+
+// Usuario demo
+if(!users['demo@demo.com']){
+  users['demo@demo.com']={pass:hashPass('demo'),sessions:0,hours:0,bestReaction:null,reaction:300,focus:68,precision:80};
+  saveUsers();
+}
+
+let stat={hours:0,reaction:300,focus:68,precision:80,sessions:0,bestReaction:null};
+
+function updateUI(){
+  hoursVal.textContent=stat.hours.toFixed(1);
+  reactionVal.textContent=Math.round(stat.reaction)+' ms';
+  focusVal.textContent=Math.round(stat.focus)+' %';
+  precisionVal.textContent=Math.round(stat.precision)+' %';
+  sessionsVal.textContent=stat.sessions;
+  bestReaction.textContent=stat.bestReaction?Math.round(stat.bestReaction)+' ms':'—';
+  lastUpdate.textContent=new Date().toLocaleTimeString();
+}
+
+function showDashboardFor(email){
+  current=email;
+  localStorage.setItem('currentUser',email);
+  let u = users[email];
+  stat={...u};
+  stat.sessions++;
+  users[email].sessions=stat.sessions; saveUsers();
+  userDisplay.textContent=email;
+  authPanel.style.display='none';
+  dashPanel.style.display='block';
+  updateUI();
+  startCamera();
+}
+
+function logout(){
+  if(current && users[current]){users[current]={...stat}; saveUsers();}
+  localStorage.removeItem('currentUser');
+  current=null;
+  dashPanel.style.display='none';
+  authPanel.style.display='flex';
+  emailInput.value=''; passInput.value='';
+}
+
+loginBtn.addEventListener('click',()=>{
+  const e=emailInput.value.trim(), p=passInput.value.trim();
+  if(!e||!p){alert('Email y contraseña');return;}
+  if(!users[e]){alert('Usuario no encontrado'); return;}
+  if(users[e].pass!==hashPass(p)){alert('Contraseña incorrecta');return;}
+  showDashboardFor(e);
+});
+
+createBtn.addEventListener('click',()=>{
+  const e=emailInput.value.trim(), p=passInput.value.trim();
+  if(!e||!p){alert('Email y contraseña');return;}
+  if(users[e]){alert('Usuario ya existe');return;}
+  users[e]={pass:hashPass(p),sessions:0,hours:0,bestReaction:null,reaction:300,focus:68,precision:80};
+  saveUsers();
+  alert('Cuenta creada con éxito. Ahora inicia sesión.');
+});
+
+logoutBtn.addEventListener('click',logout);
+
+// Auto-login
+if(current && users[current]) showDashboardFor(current);
+
+// Cámara simulada
+function startCamera(){
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({video:true}).then(stream=>{
+      webcamEl.srcObject=stream;
+      webcamEl.style.display='block';
+      statusText.textContent='Cámara activa ✔';
+      setInterval(()=>{
+        stat.reaction=200+Math.random()*100;
+        stat.focus=50+Math.random()*50;
+        updateUI();
+      },2000);
+    }).catch(()=>{statusText.textContent='No se pudo activar la cámara';});
+  } else {statusText.textContent='Cámara no soportada';}
+}
+
+/* ================== Comentarios Mejorado ================== */
+let comments = JSON.parse(localStorage.getItem('comments') || '[]');
+function saveComments(){ localStorage.setItem('comments', JSON.stringify(comments)); }
+function getDisplayName(userName,email){ return email==='demo@demo.com'? '*ADMIN*' : userName||'Anon'; }
+
+function renderReplies(replies=[]){
+  if(!replies.length) return '';
+  return replies.map(r=>`
+    <div class="reply">
+      <strong>${getDisplayName(r.username,r.user)}</strong>
+      <span class="date">${new Date(r.date).toLocaleString()}</span>: ${r.text}
+      ${renderReplies(r.replies)}
+    </div>
+  `).join('');
+}
+
+function renderComments(){
+  commentsList.innerHTML='';
+  comments.forEach((c,i)=>{
+    const div = document.createElement('div');
+    div.className='comment';
+    div.innerHTML = `
+      <div><strong>${getDisplayName(c.username, c.user)}</strong>
+      <span class="date">${new Date(c.date).toLocaleString()}</span></div>
+      <p>${c.text}</p>
+      ${renderReplies(c.replies)}
+      ${(current==='demo@demo.com'||current===c.user)?`<button data-i="${i}" class="replyBtn">Responder</button>`:''}
+    `;
+    commentsList.appendChild(div);
+  });
+
+  document.querySelectorAll('.replyBtn').forEach(btn=>{
+    btn.onclick=()=>{
+      const idx=btn.dataset.i;
+      const replyText=prompt('Escribe tu respuesta:');
+      if(replyText){
+        comments[idx].replies=comments[idx].replies||[];
+        comments[idx].replies.push({user:current,username:current==='demo@demo.com'?'*ADMIN*':'',text:replyText,date:Date.now()});
+        saveComments();
+        renderComments();
+      }
+    }
+  });
+}
+
+commentsBtn.onclick = ()=>{
+  commentsModal.style.display='flex';
+  if(current==='demo@demo.com'){
+    $('#usernameInput').style.display='none';
+  } else {
+    $('#usernameInput').style.display='block';
+    const prev = comments.find(c=>c.user===current)?.username || '';
+    $('#usernameInput').value = prev;
+  }
+  renderComments();
+}
+
+closeComments.onclick = ()=>{ commentsModal.style.display='none'; commentInput.value=''; }
+
+postCommentBtn.onclick = ()=>{
+  const text = commentInput.value.trim();
+  if(!text){alert('Escribe algo'); return;}
+  const uname = current==='demo@demo.com'? '*ADMIN*' : $('#usernameInput').value.trim() || 'Anon';
+  comments.push({user:current,username:uname,text,date:Date.now(),replies:[]});
+  saveComments();
+  commentInput.value='';
+  renderComments();
+}
+</script>
+</body>
+</html>
